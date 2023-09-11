@@ -1,0 +1,24 @@
+i.group group=Mapir0817rect input=odm_orthophoto.1_georect16308,odm_orthophoto.2_georect16308,odm_orthophoto.3_georect16308,odm_orthophoto.4_georect16308 
+
+# output. 
+r.out.gdal input=Mapir0817rect output="Y:\Students file\Stephan\drone data\Sensor-Comparison\for_georef\mapir20220817_rectified.tif" format=GTiff
+
+r.out.gdal input=mica0817rect output="Y:\Students file\Stephan\drone data\Sensor-Comparison\for_georef\mica20220817_rectified.tif" format=GTiff 
+
+
+i.group group=Mapir0817JPGrect input=odm_orthophoto.1_georect6396@mapir0817JPG_5m,odm_orthophoto.2_georect6396@mapir0817JPG_5m,odm_orthophoto.3_georect6396@mapir0817JPG_5m,odm_orthophoto.4_georect6396@mapir0817JPG_5m 
+
+r.out.gdal input=Mapir0817JPGrect output="Y:\Students file\Stephan\drone data\Sensor-Comparison\for_georef\mapirJPG20220817_rectified.tif" format=GTiff
+
+
+
+Processing 1/3: 2022_0705_130421_001.tif
+C:\Users\Ram\anaconda3\envs\mapir\lib\site-packages\rasterio\__init__.py:220: NotGeoreferencedWarning: Dataset has no geotransform, gcps, or rpcs. The identity matrix be returned.
+  s = DatasetReader(path, driver=driver, sharing=sharing, **kwargs)
+
+Processing 2/3: 2022_0705_130424_003.tif
+
+Processing 3/3: 2022_0705_130426_005.tif
+Processing COMPLETE
+
+r.in.gdal -e input="\data\mapir_20220705_50m\odm_orthophoto\odm_orthophoto.tif" location=scanned_maps output=scanned_map
