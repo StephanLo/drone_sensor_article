@@ -1,0 +1,740 @@
+---
+title: "On the accuracy of an infrared-converted drone camera with Orange-Cyan-NIR filter for use in vegetation and environmental monitoring"
+author:    
+  - name: Albertus S. Louw
+    email: jasahovercar@gmail.com
+    affiliations:
+      - name: Graduate School of Environmental Science, Hokkaido University
+  - name: Chen Xinyu
+    affiliations:
+    - name: Graduate School of Environmental Science, Hokkaido University
+  - name: Ram Avtar
+    email: ram@ees.hokudai.ac.jp
+    affiliations:
+    - name: Graduate School of Environmental Science, Hokkaido University
+    attributes:
+        corresponding: true
+execute: 
+  cache: false
+  warning: false
+knitr: 
+  opts_chunk: 
+    echo: FALSE
+prefer-html: true
+format:
+  docx:
+    page-width: 8.3
+    prefer-html: true
+    fig-dpi: 300
+    number-sections: true
+    reference-doc: docx_template.docx
+    csl: apa.csl
+  elsevier-pdf:
+    journal:
+      name: Applied Computing and Geosciences
+    number-sections: true
+    keep-tex: true
+    fig-pos: "h"
+  elsevier-html:
+    journal:
+      name: Applied Computing and Geosciences
+    number-sections: true
+
+editor: visual
+bibliography: references.bib
+editor_options: 
+  chunk_output_type: console
+---
+
+# Abstract
+
+Drones equipped with cameras sensitive to near-infrared wavelengths are increasingly being used in environmental assessment studies and in agriculture. These cameras are sensitive to vegetation cover, extent of eutrophication in water bodies, and aspects of crops such as growth vigour, biomass and potential yield. Single-sensor ('RGB') cameras with modified spectral filters that allow for capturing near-infrared wavelengths offer a low-cost alternative to multi-sensor multispectral cameras or spectrometers. However, some studies point to lower measurement accuracies by such infrared converted sensors. So, to what extent can infrared converted cameras be used to quantify vegetation condition? This case study compared Normalized Difference Vegetation Index (NDVI) measurements from an infrared converted camera to those measured by a drone-borne multispectral camera and a handheld NDVI meter, as captured over soybean and potato fields. It was observed that the infrared converted camera derived NDVI was consistently lower over vegetation than NDVI measured from the multispectral and handheld sensors. The study builds on previous case studies with similar results by further evaluating the reflectance patterns of the individual image bands to find possible reasons for the discrepancy in vegetation index measurements. There is good agreement between the near-infrared bands of the respective sensors ($r = 0.87$), but the respective red bands have weak correlation ($r = -0.03$). We discuss possible reasons for the lower vegetation index measurements observed by the infrared converted camera, noting broad band sensitivities and differing central wavelengths, which may have caused overestimated reflectance in the red band. All processing and analysis were executed with open-source software, and source code is made available to support reproducible research.
+
+keywords: modified RGB camera, drone remote sensing, sensor comparison, UAV environmental monitoring, Mapir Survey 3W, MicaSense RedEdge-M.
+
+# Introduction
+
+Drones equipped with cameras are increasingly being used in environmental assessment studies and agriculture. For example, such drone-camera systems have recently been used to monitor ocean algal blooms [@fernandez-figueroa2022] and other studies of water eutrophication [@barajas2021; @sheng2021]. Drone cameras are also used to measure different aspects of crops, such as growth vigor, biomass and water-stress [@hafeez2022]. Specialized cameras for vegetation monitoring often have a sensor sensitive to wavelengths in the near-infrared part of the EM-spectrum. Healthy photosynthesizing vegetation shows high reflectance in near-infrared wavelengths, but comparatively low reflectance in the red part of the spectrum [@myneni1995]. So, if red and near-infrared wavelengths are recorder by a drone sensor, the condition or growth vigour of vegetation can be estimated with vegetation indices such as the Normalised Difference Vegetation Index, or NDVI [@huang2021]. This index ranges from -1 to 1, with higher values interpreted as vegetation with higher growth vigour. Such drone-camera systems offer a comparatively low-cost method to capture image data for wide areas, and allows data to be spatially referenced so that it can be overlaid with other sources of spatially explicit data. Different drone camera sensors however have different price-points and characteristics that may influence the quality of measurements [@nijland2014]. Thus, as the use of these technologies scale in agriculture and environmental studies, it is all the more necessary to evaluate the measurement bias or limitations of different drone sensor types.
+
+There are different ways in which cameras are designed to capture near-infrared wavelengths [@maes2019]. One approach is that the camera has an independent imaging sensor and lens for each band. An alternative approach is where a single sensor camera that uses a Bayer Color filter array to capture 3 color bands -- often referred to as red-green-blue (RGB) cameras -- is modified to become sensitive to light in the near-infrared spectrum [@lebourgeois2008]. In this article these are referred to as infrared converted cameras [@nijland2014], although they are also referred to as modified RGB [@lebourgeois2008; @wang2020] or modified multispectral cameras [@fernandez-figueroa2022]. Infrared converted cameras work by removing the filter which blocks NIR light from entering the sensor, and then substituting one of the RGB camera's bands for the NIR band. For example, instead of Red-Green-Blue, the camera becomes sensitive to Red-Green-NIR. The single sensor infrared converted cameras are cheaper (by order of magnitude) than multispectral cameras with multiple sensors. They thus pose an attractive alternative, especially in cases where 'proper' multispectral cameras are considered prohibitively expensive. Several studies highlight the value of lowering the cost of technologies that can support environmental monitoring [@fernandez-figueroa2022] and agriculture [@fernandez-gallego2019; @cucho-padin2020; @corti2019].
+
+Infrared converted cameras are an appealing option for drone agriculture remote sensing because of their comparative low-cost and ability to capture near-infrared wavelengths. However, it is necessary to verify the accuracy of spectral measurements made by these sensors. Despite being used in studies [@lebourgeois2008; @argolodossantos2020], some authors reported lower measurement accuracy for infrared converted cameras, if compared to other multispectral cameras or spectroscopes [@vonbueren2015; @gomes2021; @nijland2014]. This may partially be because the bands captured by single-sensor RGB camera is usually sensitive to light outside of the target wavelengths, and so measurements in specific band may be polluted by light in other parts of the spectrum [@burggraaff2019; @berra2015]. This means for example that a modified RGB camera may report incorrect values for a specific band, because the sensor is also capturing light from the neighboring bands.
+
+Before such infrared converted cameras can be recommended for quantitative environmental monitoring studies, or operational use on farms, it is important to verify that spectral measurements and vegetation indices derived from the infrared converted camera correspond well to measurements made by multispectral cameras, or hand-held spectrometers. The study by @gomes2021 investigated this dynamic for the Mapir Survey 3W commercial infrared converted camera, by comparing it to the multispectral MicaSense RedEdge-M camera. The study calculated the vegetation index NDVI of a coffee plantation using both cameras, as well as a handheld NDVI sensor. It was observed that NDVI measurements made by the infrared converted camera were consistently lower, if compared to the multispectral camera and handheld NDVI sensor. This finding may have important repercussions for the operational use of such infrared converted cameras. The results reported in the study by @gomes2021 may be sensitive to factors like light exposure at the time of measurement, time of the day, radiometric calibration errors, and camera settings. Thus, to strengthen the validity of these findings follow up studies can replicate their experiments, while varying components such as radiometric calibration technique, drone data collection workflows and the particular cameras and spectral filter combinations considered.
+
+The current study reinvestigates the question of the suitability of current commercial infrared converted cameras for use in vegetation condition monitoring. To improve continuity between research, we present a case-study that considers the an equivalent multispectral camera, handheld NDVI sensor and infrared converted camera used by the study of [@gomes2021]. Our experiment differs however in (1) the radiometric calibration workflow used for the sensors, (2) specific spectral filter used in the infrared converted camera, and (3) the crop type that was captured. Technical specifications of the sensors are more thoroughly described, following @pavelka2022, and discussed as possible sources of measurement discrepancies between the sensors. By critically evaluating the performance of infrared converted sensors for vegetation monitoring, the agriculture and environmental sciences sectors can make informed decisions about what systems to use, and their potential shortcomings [@vonbueren2015].
+
+# Methodology
+
+```{r 1_env_setup, include=FALSE}
+# Setup environment
+library(terra)
+library(sf)
+library(data.table)
+library(openxlsx)
+library(broom)
+library(kableExtra)
+library(ggplot2)
+library(tidyterra)
+library(ggthemes)
+library(patchwork)
+library(scales)
+theme_set(theme_clean())
+library(RColorBrewer)
+```
+
+```{r SensorCharacteristics}
+
+mapir_filter <- openxlsx::read.xlsx("data/sensor_data/F490-615-808.xlsx", colNames = FALSE) |> as.data.table()
+names(mapir_filter) <- c("Wavelength", "Transmission")
+
+mapir_filter <- mapir_filter[complete.cases(mapir_filter),] # remove NA rows
+
+# Divide into 3 bands: (select values less than each 'threshold' )
+wave_max <- max(mapir_filter$Wavelength)
+wave_min <- min(mapir_filter$Wavelength)
+
+filter_cutpoint <- c(wave_min,550,720,wave_max)
+band_names <- c("F490", "F615", "F808")
+mapir_filter[,band := cut(Wavelength, breaks = filter_cutpoint, labels = band_names, include.lowest = TRUE)]
+
+## work out max for each band:
+f490 <- mapir_filter[band == "F490",]
+f615 <- mapir_filter[band == "F615",]
+f808 <- mapir_filter[band == "F808",]
+
+## work out fwhm for each:
+fwhm_490 <- gsignal::fwhm(x = f490$Wavelength,
+                 y = f490$Transmission)
+
+fwhm_615 <- gsignal::fwhm(x = f615$Wavelength,
+                 y = f615$Transmission)
+
+fwhm_808 <- gsignal::fwhm(x = f808$Wavelength,
+                 y = f808$Transmission)
+# make our own table
+sensor_data <- data.table(sensor = c(rep("RedEdge-M",5),
+                                     rep("Survey 3W OCN",3),
+                                     rep("Greenseeker",2)),
+                          band_name = c("Blue", "Green", "Red", "Red Edge", "NIR",
+                                        "Cyan", "Orange", "NIR",
+                                        "NIR", "Red"),
+                          band_centre = c(475,560,668,717,840,
+                                          490, 615, 808,
+                                          780, 660),
+                          fwhm = c(20,20,10,10,40,39,45,54,NA,NA))
+
+sensor_data[,c("b_min","b_max") := .(band_centre -fwhm/2, band_centre + fwhm/2  )]
+
+write.xlsx(sensor_data ,file = "reporting/supplementary/S1_sensorbands.xlsx")
+
+
+Sensor_plots <- ggplot( sensor_data, aes(x = band_centre, 
+                         y = sensor, 
+                         color = sensor, 
+                         fill = sensor,
+                         xmin = b_min,
+                         xmax = b_max)) +
+  geom_point(shape = 21, size = 3) +
+  scale_color_brewer(type = "qual", palette = "Set1")+
+  scale_fill_brewer(type = "qual", palette = "Set1")+
+  geom_errorbarh(height = 0.3) + 
+  geom_text(aes(label = band_name),colour = "black", vjust = -1.5, size = 3)+
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) + 
+  labs(x = "Wavelength (nm)",
+       y = "Sensor",
+       color = "Sensor",
+       fill = "Sensor")
+
+```
+
+## Study site
+
+Field surveys were conducted on a commercial crop farm outside Iwamizawa City in Hokkaido prefecture, Japan. Surveys were flown over a potato field (3.4 hectare) and a soybean field (1.9 hectare) @fig-study_site. Hokkaido prefecture is an agriculturally important prefecture in Japan, accounting for 25 % of Japan's total cultivated area. Farming in this prefecture also consists mostly of commercial farming households, characterised by large farms (13 times larger area per household than other prefectures) that are managed on a full time basis [@hokkaidodoa2020]. These characteristics make Hokkaido's agriculture sector more suitable for adoption of new agricultural technologies like drones [@swinton2001]. Hokkaido is also the largest producer of potatoes (32.8% share) and soybean (47.7 %) among prefectures in Japan [@hokkaidodoa2020]. Two field surveys were conducted, the first one 5 July 2022, when the soy plants were still small, and potato crop was in the vegetative growth stage. The second survey was done on 17 August 2022, approximately 6 weeks after the first. At this time the potato crops had started senescence, and the soy crop was showing strong vegetative growth.
+
+![Field Study Site: potato and soybean fields, Iwamizawa City, Japan, July 2022](reporting/images/Iwamisawa%20Study%20Site.png){#fig-study_site fig-alt="Map of study site"}
+
+## Data Collection
+
+On the two survey days drone surveys were conducted by 2 drone-camera systems. A summary of the sensor and data collection details are given in @tbl-survey. The infrared converted camera used in the study was the Mapir Survey 3W camera with an OCN (orange, cyan, near-infrared) spectral filter [@mapira], however the manufacturer recommends the orange band to be treated as substitute for red in vegetation index derivations. The multispectral sensor considered for comparison was the MicaSense RedEdge-M camera. The camera has 5 sensors that each captures a single spectral band [@micasenseinc.2023]. The central wavelengths and bandwidths of the respective sensors, are given in @tbl-survey and illustrated in @fig-sensorbands. Bandwidths are measured by the Full Width at Half Maximum (FWHM) metric. For the Mapir Survey 3W OCN sensor the manufacturer did not supply FWHM bandwidth, but they do supply the central wavelengths and the filter transmission data [@mapir2022], which we used to calculate FWHM with functions from the signal processing library *gsignal* in R [@vanboxtelg.j.m.etal.2021]. The central wavelength for the Trimble handheld NDVI meter considered in this study was supplied by the manufacturer [@trimbleinc.2022], but not bandwidth information. The MicaSense RedEdge-M camera [@micasenseinc.2019] was mounted on a DJI Inspire 2 quadcoptor drone. The Mapir sensor was mounted on a DJI Phantom 4 Pro drone. We selected a 50 m target flying height for the Mapir camera to corresponds to the studies by @gomes2021 and @argolodossantos2020. However, because the MicaSense sensor has a lower image resolution, the Inspire 2 drone was flown at a lower target height of 40 m. This height was chosen so that ground sampling distance differed less than 5 mm/px between the two sensors. Both camera manufacturers supply tools for calculating sensor ground sampling distance at specified heights. Autonomous flight plans were set using 75% overlap between images. The surveys were conducted between approximately 13:00 and 14:30 local time. Additional details of the respective sensors are described in supplementary file S1.
+
+```{r}
+#| label: fig-sensorbands
+#| fig-cap: Central wavelength (points) and bandwidth (FWHM, displayed as error bars) for the bands of the three considered sensors. Bandwidth for the Greenseeker sensor was not supplied. 
+#| fig.height: 3 
+#| fig.width: 8
+#| fig-dpi: 300
+Sensor_plots
+ggsave(filename = "reporting/images/fig_M_bandCharacteristics.png", width = 8, height = 3, dpi = "print")
+
+```
+
++------------------------------------------+---------------------------------------------------------------------------------+------------------------------------------------+---------------------+
+| Property                                 | MicaSense RedEdge-M                                                             | Mapir Survey3W OCN                             | Trimble Greenseeker |
++==========================================+=================================================================================+================================================+=====================+
+| Spectral bands\                          | blue 475 (20) + green 560 (20) + red 668 (10)+ NIR 842 (40) + red edge 717 (10) | Orange 615 (45) + Cyan 490 (39) + NIR 808 (54) | NIR 780 + red 660   |
+| \[name, band-center, bandwidth) \[$nm$\] |                                                                                 |                                                |                     |
++------------------------------------------+---------------------------------------------------------------------------------+------------------------------------------------+---------------------+
+| Drone platform used                      | DJI Inspire 2                                                                   | DJI Phantom 4 Pro                              | (hand-held)         |
++------------------------------------------+---------------------------------------------------------------------------------+------------------------------------------------+---------------------+
+| Capturing height (AGL)                   | 40 m                                                                            | 50 m                                           | 0.4 m - 0.5 m       |
++------------------------------------------+---------------------------------------------------------------------------------+------------------------------------------------+---------------------+
+| Image overlap                            | 75 (%)                                                                          | 75 (%)                                         | N/A                 |
++------------------------------------------+---------------------------------------------------------------------------------+------------------------------------------------+---------------------+
+
+: Summary of Drone-camera systems and hand-held sensor used during field surveys. Image band and central wavelength is shown, with bandwidth in brackets, measured by the FWHM metric. Wavelength and bandwidth shown in nanometer ($nm$). {#tbl-survey}
+
+Both the camera manufacturers supply ground calibration panels that are used for image calibration during subsequent processing. The respective ground panels were photographed before take-off (@fig-calibration_panels).
+
+![Photos of calibration panels for the MicaSense (A) and Mapir (B) cameras, taken before flight](reporting/images/targets_picture-page001.png){#fig-calibration_panels fig-alt="calibration panels photographed on ground before flight."}
+
+To compare the drone survey results, we measured NDVI values at sample locations in the two fields using the handheld Trimble Greenseeker NDVI meter [@trimbleinc.2022]. The Trimble Greenseeker uses an active sensor that emits bursts of near-infrared (780 nm) and red (660 nm) light, and then measures the reflectance back to the sensor. The device then calculates an NDVI reading and shows it on an LCD screen. It has a 25 cm field of view when capturing at a height of 60 cm. A further description of the sensor, and comparison with other multispectral sensors is given in @pavelka2022. To correspond field sample measurements with drone based measurements we placed A4 papers and plastic markers in the field at the sample locations. These markers were visible from the drone images, and could be used to identify the locations to sample NDVI from drone images. Since measurements of NDVI are assumed not to be affected by the type of crop or surface measured, we considered sample locations from the ground, potato field and soybean field together. On the first survey, 12 samples were taken with the Trimble Greenseeker, and on the second day, 26, totalling 38 samples.
+
+![Example of sample location marker (inside red square), as seen from Mapir camera flown on drone 50m AGL](reporting/images/target_example-page001.png){#fig-sample_marker}
+
+## Data calibration and processing
+
+The images captured by the two cameras were calibrated to reflectance images, to be used in derivation of the NDVI vegetation index. Mapir supplies official GUI software for radiometric calibration of Mapir camera images, called Mapir Camera Control (MCC), as well as python based processing scripts [@mapir]. We used the software to convert RAW images to tiff, apply vignette corrections and convert images values to reflectance. For calibration to reflectance the software used the calibration panel images taken during the field survey (@fig-calibration_panels). The resulting calibrated images were processed into a single georectified orthomosaic using the Windows command line utility for OpenDroneMap [@opendronemapauthors2020], an opensource drone image processing software. For the MicaSense RedEdge-M camera, the OpenDroneMap software was used to apply radiometric calibration to reflectance, since the software has built in support for this camera model. The software applies black level, vignetting and row gradient gain/exposure compensation [@opendronemapauthors2020]. In the software the option was selected to compensate for spectral radiance measured by a down-welling light sensor. The output of this processing was a *GeoTIFF* orthomosaic with a layer for each of the 5 spectral bands captured by the RedEdge-M camera. For the analysis that required individual reflectance images, the python based image processing utility provided by MicaSense [@micasenseinc.2022] was used to calibrate the images to reflectance. Further details on the radiometric calibration procedure and orthomosaic generation is described in the Supplementary file S1.
+
+Next, the NDVI index was calculated from the reflectance images using @eq-ndvi given below, where NIR is reflectance in the near-infrared band, and Red is reflectance in the red band. For the three sensors considered, the specific red and near-infrared bands can be seen in @tbl-survey. The wavelengths measured by the orange band of the infrared converted camera (center 615 nm) does not overlap with that of the red band of the multispectral camera (668 nm)( @fig-sensorbands). This means that differences in reflectance measured by the sensors do not necessarily relate to differences in the measurement accuracy of the sensor, since differences can be the result of actual variation in the reflectances in the respective bands. But, both sensors are used for vegetation mapping, with the respective red and near-infrared channels used as input for vegetation index maps. Therefore it is important to describe differences in equivalent vegetation index maps derived from the two types of sensors, as well as differences in reflectances measured by individual bands.
+
+$$
+NDVI = \frac{NIR-Red}{NIR+Red}
+$$ {#eq-ndvi}
+
+We used the sample location markers visible in the orthophotos to create a vector point file of the sample locations. A buffer of 10 cm radius was made around each sample point location, and then average NDVI value in the buffer was extracted from the NDVI maps. We used the buffer, since the handheld sensor captures NDVI from about 40 - 50 cm above the plant canopy, and thus captures NDVI for an area. The exact field of view, and thus ground sampling distance of the GreenSeeker sensor was however not known, causing ambiguity about the precise area/plants measured by the sensor. Also, for three sample points in the soybean field, the markers were not visible, so we selected NDVI in the first part of the row that the marker was noted down to be in.
+
+## Data Analysis
+
+Three analyses were considered for the acquired data.\
+Firstly, the NDVI values derived from the three sensors were plotted for each sample location, to show the relationship between the values. To describe the relationship between the NDVI measurement of the sensors, we fit a least-squares Linear model between the drone based measurements, and the handheld sensor based measurement. If the drone-borne cameras and handheld sensor measured NDVI the same across sample points there would be an approximately (1-1) linear relationship between NDVI measurements. So to quantify the difference in NDVI measurements from the two sensors, we considered the linear regression model, where the slope of the model is an indication of difference in the sensor's sensitivity to NDVI changes --- a slope of 1 means NDVI values of the sensors scale the same. The intercept is taken to be an indication of a systematic under or over estimation of NDVI. The model $R^2$ is an indication of whether the assumption of a linear relationship between the sensors' NDVI values was suitable.
+
+As second analysis, we evaluated the differences between the infrared converted camera's orange band and the multispectral camera's red band, and also the differences in measurement between the two sensors' near-infrared bands. Average reflectance in 10 cm buffers around the field sample location was calculated and shown in scatter plots, and correlation between the two sensors readings were evaluated with pearson's correlation coefficient. To see the pattern at more locations, we generated 5000 random points with 10 cm buffers in the the study area, and extracted reflectances from the orthomosaics of both survey days. This resulted in 10,000 samples for each sensor. Again scatter plots and pearson correlation are used to evaluate the relationship.
+
+For the third analysis we calculated the difference in reflectance between the Mapir camera's orange band and the MicaSense's red-band. We considered a single scene over the potato field, and for each camera used a single image taken of the scene. Individual images were chosen instead of the previously generated orthomosaics since ground sampling distance is higher in individual images, and there are less image distortions than in the orthomosaics generated in the photogrammetry software. The difference in reflectance indicated in what parts of the scene the Mapir Sensor measured higher reflectance than the MicaSense sensor, and where the reflectances were similar. We compared the patterns of reflectance over vegetation and bare-ground pixels in the scene.
+
+```{r A0_bands_sample_points}
+# Starting with Orthophoto of study site.
+# compare Red and NIR band values at each sample point.
+
+## We make xlsx file with table of sampled values, so dont need to run whole code
+# if already table there. 
+rerun_code <- FALSE 
+if(!file.exists("processing/data/reflectance_samples.xlsx") | rerun_code) {
+mapir_names <- c("map_Orange", "map_Cyan", "map_NIR")
+mica_names <- c("mic_Blue", "mic_Green", "mic_Red", "mic_NIR", "mic_RedEdge")
+
+# load rasters
+mapir <- list.files(path = "data/georeferenced_data/for_datum_JGD2011",
+                      pattern = "mapir",
+                      full.names = TRUE)
+
+mica <- list.files(path = "data/georeferenced_data/for_datum_JGD2011",
+                    pattern = "mica",
+                    full.names = TRUE)
+
+
+# Read in files ----
+# paths
+point_path <- c("data/vector_data/targetsamples_0705.gpkg", "data/vector_data/targetsamples0817.gpkg")
+
+#some of the rasters are in 16bit int and other is in reflectance (decimal up to 1)
+bit16 <- 2^16 - 1
+
+
+## Rasters
+mapir_d1_raw <- rast(mapir[1]) |> terra::subset(1:3)
+mapir_d2_raw <- rast(mapir[2]) |> terra::subset(1:3)
+
+mapir_d1 <- mapir_d1_raw/bit16
+mapir_d2 <- mapir_d2_raw/bit16
+
+names(mapir_d1) <- mapir_names
+names(mapir_d2) <- mapir_names
+
+
+# mica already in reflectance.
+mica_d1 <- rast(mica[1]) |> terra::subset(1:5)
+mica_d2 <- rast(mica[2]) |> terra::subset(1:5)
+
+names(mica_d1) <- mica_names
+names(mica_d2) <- mica_names
+
+
+# point locations 
+samples_d1 <- vect(point_path[1])
+samples_d1 <- samples_d1[order(samples_d1$no),] # make sure the row order is according to the no variable.
+
+samples_d2 <- vect(point_path[2])
+samples_d2 <- samples_d2[order(samples_d2$no),] # make sure the row order is 
+
+
+# Make buffer around point. Of 10 cm radius (0.1 meter)
+buf_d1 <- terra::buffer(samples_d1, width = 0.1) 
+buf_d2 <- terra::buffer(samples_d2, width = 0.1) 
+
+# Extract values at samples.
+pv_mapir_d1 <- extract(x = mapir_d1,
+                     y = buf_d1,
+                     fun = mean)
+
+
+pv_mica_d1 <- extract(x = mica_d1,
+                     y = buf_d1,
+                     fun = mean)
+
+# and for the second day:
+
+pv_mapir_d2 <- extract(x = mapir_d2,
+                     y = buf_d2,
+                     fun = mean)
+
+pv_mica_d2 <- extract(x = mica_d2,
+                     y = buf_d2,
+                     fun = mean)
+
+# combine the observations from the individual images and the orthophoto.
+samples_mapir <- rbind(pv_mapir_d1,
+                    pv_mapir_d2)
+
+samples_mapir$ID <- 1:nrow(samples_mapir)
+
+samples_mapir$sensor <- "mapir"
+
+
+samples_mica <- rbind(pv_mica_d1,
+                    pv_mica_d2)
+
+samples_mica$ID <- 1:nrow(samples_mica)
+
+samples_mica$sensor <- "mica"
+
+
+setDT(samples_mapir)
+setDT(samples_mica)
+
+# make to long.
+
+mapir_long <- melt(samples_mapir, 
+                   id.vars = c("ID", "sensor"),
+                   variable.name = "band",
+                   value.name = "value")
+
+mica_long <- melt(samples_mica, 
+                   id.vars = c("ID", "sensor"),
+                   variable.name = "band",
+                   value.name = "value")
+
+
+field_samples <- rbind(mapir_long,mica_long)
+
+
+# bit wider
+field_samples_wider <- dcast(data = field_samples,
+                             formula = ID ~ band,
+                             value.var = "value")
+
+## For more sample points (5000):
+# paths
+point_paths <- "data/vector_data/random_points/points_5000_clean_data_area.shp"
+
+# read data
+points_vec <- vect(point_paths)
+buf_vec <- buffer(points_vec,0.1) # 10 cm radius buffer (0.1 meter)
+#extract ndvi at the random points in the field:
+bands_points <- rbind(extract(x = c(mapir_d1[[c(1,3)]],mica_d1[[c(3,4)]]),
+                     y = buf_vec,
+                     fun = mean,
+                     na.rm = TRUE),
+                   extract(x = c(mapir_d2[[c(1,3)]],mica_d2[[c(3,4)]]),
+                     y = buf_vec,
+                     fun = mean,
+                     na.rm = TRUE)
+)
+
+setDT(bands_points)
+bands_points$ID <- 1:nrow(bands_points)                            
+
+## save data ----------------------------------------------------
+write.xlsx(list("field_samples" = field_samples_wider, "random_samples"= bands_points),
+          file = "processing/data/reflectance_samples.xlsx")
+
+} else {
+    field_samples_wider <- read.xlsx("processing/data/reflectance_samples.xlsx",
+                                    sheet = "field_samples")
+    bands_points <- read.xlsx("processing/data/reflectance_samples.xlsx",
+                                    sheet = "random_samples")
+    setDT(field_samples_wider)
+    setDT(bands_points)
+}
+#---------------------------------------------------------------  
+
+ ## Correlation field:
+cor_fred <- cor(x = field_samples_wider$map_Orange,
+                y = field_samples_wider$mic_Red)
+
+cor_fnir <- cor(x = field_samples_wider$map_NIR,
+                y = field_samples_wider$mic_NIR)
+
+# Correlation random points: 
+cor_red <- cor(x = bands_points$map_Orange,
+                y = bands_points$mic_Red)
+
+cor_nir <- cor(x = bands_points$map_NIR,
+                y = bands_points$mic_NIR)
+
+## rescale values for plotting
+field_rescaled <- field_samples_wider[,lapply(.SD, rescale), .SDcols = patterns("_") ]
+random_rescaled <- bands_points[,lapply(.SD, rescale), .SDcols = patterns("_") ]
+
+```
+
+```{r A1_field_sample_points, include=FALSE}
+
+# paths
+point_path <- c("data/vector_data/targetsamples_0705.gpkg", "data/vector_data/targetsamples0817.gpkg")
+
+survey_path <- "data/survey_data/Yao_farm_surveys_2022.xlsx" 
+survey_sheet <- c("20220705_trimble_NDVI", "20220817_trimble_NDVI") #sheet name
+r_path <- list.files(path = "data/ndvi_maps/",
+                      full.names = TRUE,
+                      pattern = ".tif")
+
+r_names <- list.files(path = "data/ndvi_maps/",
+                      pattern = ".tif") |> (\(x) substr(x,start = 1, stop = nchar(x)-4))() # this takes the name but drops the .tif extension
+# more info on the syntax https://www.r-bloggers.com/2021/05/the-new-r-pipe/
+
+# DAY 1 
+## if first date, use path index 1&3 and surveysheet 1, if second date, 2&4 and survey sheet 2, 
+vi_raster <- rast(r_path[c(1,3)])  
+names(vi_raster) <- c("sensor_1", "sensor_2")
+
+rpoints_vec <- vect(point_path[1])
+rpoints_vec <- rpoints_vec[order(rpoints_vec$no),] # make sure the row order is according to the no variable.
+
+survey_df <- readxl::read_excel(path = survey_path,
+                                sheet = survey_sheet[1])
+
+# Make buffer around point. Of 10 cm radius (0.1 meter)
+p_buf <- buffer(rpoints_vec, width = 0.1) 
+
+#extract ndvi at the points in the orthophoto:
+ortho_points <- extract(x = vi_raster,
+                     y = p_buf,
+                     fun = mean)
+
+# combine the observations from the individual images and the orthophoto.
+d1_points <- rbind(ortho_points)
+d1_points$ID <- 1:nrow(d1_points)
+
+d1_points <- merge(d1_points, values(rpoints_vec),by.x = "ID", by.y = "no")
+d1_points$day <- "survey 1"
+d1_all <- merge(d1_points, survey_df[,1:4], by.x = "ID", by.y = "ID")
+
+# DAY 2 
+#read in data
+vi_raster <- rast(r_path[c(2,4)])  
+names(vi_raster) <- c("sensor_1", "sensor_2")
+rpoints_vec <- vect(point_path[2])
+rpoints_vec <- rpoints_vec[order(rpoints_vec$no),] # make sure the row order is according to the no variable.
+survey_df <- readxl::read_excel(path = survey_path,
+                                sheet = survey_sheet[2])
+
+# Make buffer around point. Of 10 cm radius (0.1 meter)
+p_buf <- buffer(rpoints_vec, width = 0.1) 
+#extract average ndvi from the sample points
+d2_points <- extract(x = vi_raster,
+                     y = p_buf,
+                     fun = mean)
+
+d2_points <- merge(d2_points, values(rpoints_vec),by.x = "ID", by.y = "no")
+d2_points$day <- "survey 2"
+d2_all <- merge(d2_points, survey_df, by.x = "ID", by.y = "ID")
+
+
+all_df <- rbind(d1_all,d2_all) # COmbine DAY 1 and DAY 2
+names(all_df)[names(all_df) == "NDVI"] <- "trimble" # ndvi is too ambiguous
+setDT(all_df) # make data.table
+
+# Drop the missing values.
+all_df <- all_df[complete.cases(all_df),]
+
+## Data Analysis ----
+# Analysis 1.1: Rearrange for plotting:
+ndvi_long <- all_df[,c("ID","day", "sensor_1", "sensor_2","trimble")] |>
+  melt(id.vars = c("ID","day"),
+       variable.name = "sensor",
+       value.name = "ndvi")
+
+ndvi_v2 <- all_df[,c("ID", "sensor_1", "sensor_2", "trimble","day")] |>
+  melt(id.vars = c("ID","trimble","day"),
+       variable.name = "sensor",
+       value.name = "drone_ndvi")
+
+write.xlsx(file = "processing/data/fieldpoint_ndvi.xlsx",
+                     x = list("all_df" = all_df, 
+                               "ndvi_long" = ndvi_long,
+                                 "ndvi_v2" = ndvi_v2)
+                    )
+
+##  Analysis 1.2: Test models ---"---"---"---"
+model_sensor_1 <- lm(formula = sensor_1 ~ trimble, data = all_df) 
+model_sensor_2 <- lm(formula =  sensor_2 ~ trimble, data = all_df)
+
+modelSum_trimble <- rbind(
+  tidy(model_sensor_1),
+  tidy(model_sensor_2)
+)
+
+
+setDT(modelSum_trimble)
+
+modelSum_trimble$sensor <- c(rep("Mapir Survey 3W",2),
+                             rep("MicaSense RedEdge-M",2)
+)
+
+modelSum_trimble$R2 <-  c(
+  rep(summary(model_sensor_1)$r.squared,2), # Mapir camera model' R^2
+  rep(summary(model_sensor_2)$r.squared,2)  # MicaSense camera R^2
+)
+
+modelSum_trimble$term <- rep(c("intercept","slope"),2)
+
+```
+
+```{r A2_5000_ndvipoints, include=FALSE}
+# paths
+r_paths <- list.files(path = "data/ndvi_maps/",
+                      full.names = TRUE,
+                      pattern = ".tif")
+
+r_names <- list.files(path = "data/ndvi_maps/",
+                      pattern = ".tif") |> (\(x) substr(x,start = 1, stop = nchar(x)-4))() 
+point_paths <- "data/vector_data/random_points/points_5000_clean_data_area.shp"
+
+# read data
+vi_raster <- rast(r_paths)  
+names(vi_raster) <- r_names
+points_vec <- vect(point_paths)
+buf_vec <- buffer(points_vec,0.1) # 10 cm radius buffer (0.1 meter)
+#extract ndvi at the random points in the field:
+vi_points <- extract(x = vi_raster,
+                     y = buf_vec,
+                     fun = mean,
+                     na.rm = TRUE)
+setDT(vi_points)
+
+# Correlation: 
+## mica ~ mapir 2022-07-05
+cor_0705 <- cor(x = vi_points$ndvimaps_mica0705,
+                y = vi_points$ndvimaps_mapir0705)
+
+## mica ~ mapir 2022-08-17
+cor_0817 <- cor(x = vi_points$ndvimaps_mica0817,
+                y = vi_points$ndvimaps_mapir0817)
+
+##  Analysis 1.2: Test models ---"---"---"---"
+model_day_1 <- lm(formula = ndvimaps_mica0705 ~ ndvimaps_mapir0705, data = vi_points) 
+model_day_2 <- lm(formula = ndvimaps_mica0817 ~ ndvimaps_mapir0817, data = vi_points)
+
+modelSum_5k <- rbind(tidy(model_day_1),tidy(model_day_2))
+setDT(modelSum_5k)
+modelSum_5k$term <- c("intercept","slope","intercept","slope")
+modelSum_5k$day <- c("Survey 1", "Survey 1", "Survey 2","Survey 2") 
+
+```
+
+# Results
+
+## NDVI at field sample points.
+
+We measured NDVI with the three described sensors on two survey days in potato and soybean fields, adding up to 38 sample points. @fig-result_1 shows the NDVI values measured by each sensor for the two survey days. The figure shows that the infrared converted sensor reported lower NDVI, compared to the multispectral camera and Trimble Greenseeker handheld NDVI sensor. On both days the multispectral drone camera reported higher NDVI values than the handheld sensor. The specific relationship between the sensor readings was evaluated with a least-squares linear model. The multispectral camera's NDVI readings scaled almost 1-1 with the handheld sensor (model slope = `r round(modelSum_trimble$estimate[4],2)`, @tbl-R1), but the camera's readings were higher (model intercept = `r round(modelSum_trimble$estimate[3],2)`, @tbl-R1). The linear model fit between the handheld and MicaSense sensor was better than the fit between the handheld and Mapir infrared converted sensor $R^2 =$ `r round(modelSum_trimble$R2[4],2)` and $R^2=$ `r round(modelSum_trimble$R2[1],2)` respectively, @tbl-R1).
+
+```{r result_fig_1}
+#| label: fig-result_1
+#| fig-cap: NDVI values measured by the three sensors (indicated by point colour) at the sample locations for (a) the first field survey (2022/07/05) and (b) second field survey (2022/08/17)
+#| fig.height: 4 
+#| fig.width: 6.5
+#| fig-dpi: 300
+
+# survey 1
+p1 <- ggplot(ndvi_long[day=="survey 1",], aes(x = factor(ID),y = ndvi, colour = factor(sensor))) + 
+  geom_point( alpha = 1, size = 2) +
+  #scale_colour_discrete(labels = c("Infrared converted", "Multispectral", "Handheld NDVI meter"))+
+  xlab("Sample ID") + ylab("NDVI") +
+  labs(colour = "Sensor") + scale_color_brewer(type = "qual", palette = "Set1",labels = c("Infrared converted", "Multispectral", "Handheld NDVI meter"))
+# survey 2
+p2 <- ggplot(ndvi_long[day=="survey 2",], aes(x = factor(ID),y = ndvi, colour = factor(sensor))) + 
+  geom_point( alpha = 1, size = 2) +
+  #scale_colour_discrete(labels = c("Infrared converted", "Multispectral", "Handheld NDVI meter"))+
+  xlab("Sample ID") + ylab("NDVI") +
+  labs(colour = "Sensor") + scale_color_brewer(type = "qual", palette = "Set1",labels = c("Infrared converted", "Multispectral", "Handheld NDVI meter"))
+
+p1/p2 + plot_annotation(tag_levels = "a") + plot_layout(guides = "collect")
+ggsave(filename = "reporting/images/fig_R1_ndvi_field.png", height = 4, width = 6.5, dpi = "print")
+```
+
+```{r result_tbl_R1}
+#| tbl-cap: Linear Model coefficients for model between drone sensor NDVI and handheld NDVI reading
+#| label: tbl-R1
+# KableExtra table
+tmp <- 3
+modelSum_trimble[,c("sensor","term","estimate","p.value","R2")] %>% 
+  kbl(digits = 4) %>%
+  kable_classic(full_width = F, html_font = "Cambria") %>% 
+  footnote(general = "n = 38",general_title = "")
+
+```
+
+In @fig-result_2 the black diagonal line represents the 1-1 line between drone-based measurements and the handheld sensor's NDVI measurements for all sample points. The low NDVI measured by the infrared converted camera can be seen by the red line lying below the diagonal line, with a shallow slope (slope = `r round(modelSum_trimble$estimate[2],2)`, @tbl-R1) . The multispectral sensor (line in blue) measured NDVI closer to the 1-1 line, but consistently measured higher NDVI than the handheld sensor.
+
+```{r result_fig_2, warning=TRUE,message=FALSE}
+#| label: fig-result_2
+#| fig-dpi: 300
+#| fig.width: 6.5
+#| fig.height: 4
+#| fig-cap: Relationship between NDVI measured by hand-held sensor (x-axis) and the two drone sensors (y-axis) at the 38 sample points measured over the 2 field surveys
+ggplot(ndvi_v2, aes(x = trimble, y = drone_ndvi, colour = sensor)) + 
+  geom_point(size = 2) +
+  geom_abline(slope = 1,intercept = 0) + 
+  geom_smooth(method = "lm")+
+  xlim(-0.3,1) + 
+  ylim(-0.3,1) + 
+  scale_color_brewer(type = "qual", palette = "Set1", labels = c("Infrared converted", "Multispectral")) + 
+  xlab("Handheld Sensor NDVI") + 
+  ylab ("Drone Sensor NDVI") + 
+  labs(colour = "Drone Sensor")
+ggsave(filename = "reporting/images/fig_R2_ndvi_scatter.png", height = 4, width = 6.5, dpi = "print")
+```
+
+## Individual band reflectances.
+
+To investigate possible reasons for the discrepancy between NDVI measurements of the sensors, we considered the reflectances from the bands used to calculate the NDVI index. At the locations used for field sampling, the reflectance of the multispectral camera's red band has weak correlation with that of the infrared converted camera's equivalent orange band ($r =$ `r round(cor_fred,2)`, @fig-result_indivband a ). This relationship can be more clearly seen by taking reflectance values at 10,000 randomly sampled points from the orthomosaics of the two field survey days ($r =$ `r round(cor_red,2)`, @fig-result_indivband b). By comparison, the reflectance in the near-infrared bands of the two sensor showed a stronger linear correlation at the field sampled locations ($r =$ `r round(cor_fnir,2)`, @fig-result_indivband c) and also if considering the 10,000 randomly sampled points from the orthomosaics ($r =$ `r round(cor_nir,2)`, @fig-result_indivband d).
+
+```{r result_fig_indivband_field}
+#| label: fig-result_indivband
+#| fig-dpi: 300
+#| fig.width: 6.5
+#| fig.height: 6.5
+#| fig-cap: Scatterplots comparing band reflectances, rescaled between 0 and 1, for the infrared converted camera's orange band  (615 nm) and Multispectral camera's red band (668 nm), taken at (a) the field sampling points, and also at (b) 10,000 randomly sampled points in the orthomosaics.  Similarly sub-figures (c) and (d) compare the near-infrared bands measured at the field sampling locations and at 10,000 randomly sampled points respectively.
+
+# Colors 
+my_cols <- brewer.pal(4,"Set1")
+
+plot_redfield <- ggplot(field_rescaled, aes(x = map_Orange, y = mic_Red) ) + geom_point() + geom_abline(color = my_cols[2], slope= 1, intercept = 0)+
+  labs(x = "Infrared converted (Orange)",
+       y = "Multispectral (Red)")
+
+plot_nirfield <- ggplot(field_rescaled, aes(x = map_NIR, y = mic_NIR) ) + geom_point() +  geom_abline(color = my_cols[2],slope= 1, intercept = 0)+
+  labs(x = "Infrared converted (NIR)",
+       y = "Multispectral (NIR)")
+
+plot_red5000 <- ggplot(random_rescaled, aes(x = map_Orange, y = mic_Red) ) + 
+  geom_point(size = 0.5,alpha = 0.2) + geom_abline(color = my_cols[2],slope= 1, intercept = 0)+
+  labs(x = "Infrared converted (Orange)",
+       y = "Multispectral (Red)")
+
+plot_nir5000 <- ggplot(random_rescaled, aes(x = map_NIR, y = mic_NIR) ) + geom_point(size = 0.5, alpha = 0.2) + geom_abline(color = my_cols[2],slope= 1, intercept = 0)+
+  labs(x = "Infrared converted (NIR)",
+       y = "Multispectral (NIR)")
+
+(plot_redfield + plot_red5000)/(plot_nirfield + plot_nir5000) + plot_annotation(tag_levels = "a") + theme(text = element_text(size = 10))
+ggsave(filename = "reporting/images/fig_R3_bands_points.png", width = 6.5, height = 6.5, dpi = "print")
+
+
+```
+
+```{r scene_1_redbands}
+#| eval: false
+# This is the code to save individual images. But, I added these together to make a new figure with scribus. 
+# rough idea:
+    # is the mapir orange influenced by green? So that mapir is measuring some green in orange band?
+    # if we assume that 
+    # take mapir$orange - mica$red 
+    # is the difference in band values showing large values in plant area?
+mapir_green <- refl_mapir$map_Red - refl_mica$mic_Red
+
+bandfig_titles <- c("(a) IC Red - MS Red", "(b) MS: Red band", "(c) IC: Red Band" )
+
+png(filename = "processing/scene_1_RGB.png")
+plotRGB(refl_mica, r = 3, g = 2, b = 1, scale = 0.4)
+dev.off()
+
+# red difference:
+png(filename = "processing/scene_1_reddifdf.png")
+plot(mapir_green, axes = FALSE, range = c(0,0.3), legend = FALSE)
+dev.off()
+
+# Mapir red:
+png(filename = "processing/scene_1_Map_red.png")
+plot(refl_mapir$map_Red, axes = FALSE, range = c(0,0.3), legend = FALSE)
+dev.off()
+
+# Mic red:
+png(filename = "processing/scene_1_Mic_red.png")
+plot(refl_mica$mic_Red, axes = FALSE, range = c(0,0.3), legend = FALSE)
+dev.off()
+
+# For getting legend.
+e <- ext(refl_mapir) + 0.00001
+png(filename = "processing/scene_1_legend.png", res = 96)
+plot(refl_mica$mic_Red, axes = FALSE, 
+     range = c(0,0.3),
+     plg = list(loc = "bottom"))
+dev.off()
+
+```
+
+![The difference in red reflectance captured by the infrared converted and multispectral camera. Shown for a scene over the potato field, with (a) RGB image, (b) the difference between Mapir and MicaSense red channels, (c) Mapir red reflectance, and (d) MicaSense red reflectance](reporting/images/scene_1-page001.png){#fig-scene1red}
+
+The cause of the difference in reflectance in the red bands is further investigated by considering images captured over the same area of the surveyed potato field that has vegetated and bare-ground pixels (@fig-scene1red a). The infrared converted camera recorded higher reflectance in the orange band (@fig-scene1red c) than the multispectral sensor's red band (@fig-scene1red d). This can be further seen by taking the difference in reflectance measured by the two sensors (@fig-scene1red b). For bare-ground in the image the measured reflectances were similar, since the difference in reflectance is near to 0 (@fig-scene1red b). However, over the vegetation in the scene there is a difference in the reflectances measured by the sensors of between 0.15 and 0.2. This shows that Mapir's camera recorder comparatively high 'red' reflectances over the vegetation.
+
+```{r }
+#| eval: false
+#| include: false
+#| label: fig-result_reflmap
+#| fig-dpi: 300
+
+# #| fig-cap: Band reflectance as captured by drone camera over the same area in a potato field, for red band of the infrared converted (a) and multi-sensor (b) cameras , and the near-infrared band for the infrared converted (c) and multi-sensor (d) cameras.  The color scale is shared for the images of the same band. 
+ #| fig-subcap:
+ #|  - "Red: Mapir"
+ #|  - "Red: MicaSense"
+ #|  - "NIR: Mapir"
+ #|  - "NIR: MicaSense"
+ #| layout-ncol: 2
+ #| layout-nrow: 2
+plot(refl_mapir$Red,range = c(0,0.4),legend = FALSE, mar = c(2.1, 2.1, 2.1, 2.1))
+plot(refl_mica$Red,range = c(0,0.4), mar = c(2.1, 2.1, 2.1, 4.5))
+
+plot(refl_mapir$NIR,range = c(0,1),legend = FALSE, mar = c(2.1, 2.1, 2.1, 2.1))
+plot(refl_mica$NIR,range = c(0,1), mar = c(2.1, 2.1, 2.1, 4.5))
+
+```
+
+# Discussion
+
+In this case study it was observed that the Mapir Survey3W OCN camera --- a commercial infrared converted camera marketed for use in agriculture --- consistently measured lower NDVI values in a crop field, compared to a more expensive multi-sensor multispectral camera, and a handheld NDVI meter. This result reflects those of the study by @gomes2021, who also observed lower NDVI measurements from a Mapir Survey 3W camera, compared to a MicaSense RedEdge-MX (multispectral camera) and Greenseeker handheld sensor, and also [@argolodossantos2020] who noted Mapir Survey RGNIR measured lower NDVI in a maize field than reported by other studies. A possible explanation for this observation may be that the camera considered in our study overestimated reflectance in the red-band (@fig-result_indivband). The Survey 3W OCN uses a filter with center at 615 nm for the red-band (referred to as 'orange' by the manufacturer and elsewhere in this article). This central wavelength is nearer to green wavelengths than common for red bands used in multispectral sensors (@fig-sensorbands). This highlights the fact that vegetation index measurements made by different sensors might not be directly comparable, since vegetation indices like NDVI might be sensitive to the specific band sensitives of different sensors.
+
+An additional reason for the inconsistency in measurement might be because single-sensor RGB cameras that differentiate color channels using a Bayer color filter array have comparatively broad band-sensitivities, if compared to multispectral cameras with separate sensors for each measured band [@fig-sensorbands; @burggraaff2019; @berra2015]. These two factors -- red band wavelength of the spectral filter used in the Survey 3W OCN camera, and the broader band sensitivity of infrared converted cameras in general -- may be causing the red-band of the sensor to measure reflectance from the neighboring parts of the spectrum (@fig-scene1red). Specifically, since vegetation also reflects green light, the sensor might be capturing 'green' reflectance coming from vegetation, leading to too high readings in the red band, and thus underestimation of NDVI measurements (@fig-result_1). If this is the case, a more comparable vegetation index measurement might be obtained if using infrared converted cameras equipped with spectral filter that has red channel sensitivity centered further away from the green part of the spectrum.
+
+A third possible contributor to the inconsistent measurements may be related to radiometric calibration errors. This could happen if the lighting on the calibration target during its capture did not represent the lighting over the field during the flight because of shadow or cloud. However, the fact that similar results were observed on separate field survey days, and also by @gomes2021, who used a different calibration approach, suggests that calibration errors are not the sole cause of the error in the NDVI reading. The study by @nijland2014 investigated the utility of infrared converted cameras for vegetation monitoring, but they also found inadequate band separation to reduce the accuracy of reflectance measured by these cameras. Based on the findings of this study, filters that have a red-channel at a longer wavelength (further away from the green part of the spectrum) may be more suitable than the Orange (615 nm) filter used for the red-channel in our study.
+
+@vonbueren2015 suggests that vegetation indices from RGB and infrared converted cameras are most suitable for simple assessment of vegetation condition over a large area (relative condition). Such monitoring might help farm managers to easily identify specific problem areas that can then be further investigated in-field. However, the results of this study suggest that the infrared converted camera considered might not be suitable to inform quantitative decisions like fertilizer application rate in Variable Rate Application systems [@alley2011] or biomass/yield estimation models that are calibrated for accurate NDVI measurements. If infrared converted cameras are indeed mostly suitable for relative condition type measurement, it brings to question whether such converted cameras hold an advantage over unmodified RGB cameras that are generally even cheaper than infrared converted cameras. Regular RGB cameras attached to drones have indeed successfully been used for biomass and yield estimation studies [@li2018; @argolodossantos2020; @bendig2014], and for estimating biomass of green algae in the ocean [@xu2018]. Some of those studies utilized the fact that RGB cameras capture comparatively high resolution images, which are used to generate three dimensional models of vegetation canopy. This 3-D information, together with visible-band vegetation indices may be sufficient for calculating crop biomass, which in turn can be related to expected yield in some crops, or area covered by eutrophication in water bodies. Visible band indices, although not as sensitive to variation in growth vigor as vegetation indices that incorporate near-infrared bands (e.g., NDVI), are still suitable for distinguishing crops from bare-soil background [@riehle2020], and thus for estimating the area of crop cover. Interestingly, @nijland2014 observed that an unmodified RGB camera could quantify crop condition more accurately than an infrared converted camera, despite the theoretical advantage of the converted camera to capture infrared wavelengths. @fernandez-figueroa2022 also tested an infrared converted Mapir Survey 3W for measuring Chl *a* concentration in ocean algal blooms, and found that the converted camera's vegetation indices correlated worse to measured Chl *a* than visible band indices captured by a regular RGB camera.
+
+**Conclusion**
+
+In conclusion then, our study observed that NDVI measured by an infrared converted did not agree well with a more expensive (multi-sensor) multispectral camera, and so should be used cautiously for quantitative applications like determining fertilizer application rates in crop fields. The inaccuracy might be caused by broad band sensitivities, leading to the red band capturing light from the green wavelengths. This problem might further be exacerbated by the orange (615 nm) filter used for the red band in the Survey 3W OCN camera, which is itself nearer to green wavelengths then most other infrared converted or multispectral drone cameras. Still, this sensor is useful for assessment of comparative vegetation condition to easily identify problem areas. Further work can investigate to what extent infrared-converted camera holds an advantage over unmodified RGB cameras and visible band indices, for applications where only relative condition of vegetation is important.
+
+## Code and/or data Availability
+
+This manuscript was prepared using Quarto [@allaire2022], in which executable R scripts used to generate results, and Markdown used to style the text sections are included in a single document. The source Quarto documents and accompanying codes and files are published to a public Github repository to support reproducible research (available online at the url: <https://github.com/StephanLo/drone_sensor_article>). The software used throughout this analysis is also open-source and publicly available on the internet. The raw field data used for this analysis is not persistently stored in an online repository due to the large data size of the drone imagery. However, it can be shared upon reasonable request to the corresponding author.
+
+## CRediT authorship contribution statement
+
+**Albertus S. Louw:** Conceptualization, Methodology, Software, Investigation, Visualization, Writing- Original Draft, Writing- Review & Editing. **Chen Xinyu:** Methodology, Data Curation, Investigation, Software. **Ram Avtar:** Conceptualization, Supervision, Writing- Review & Editing, Funding Acquisition, Resources.
+
+## Funding
+
+Funding: This work was supported by Asia Pacific Network for Global Change Research (APN-GCR) grant no. CBA2020-1033-Avtar. The funding source had no role in study design; in the collection, analysis and interpretation of data or writing of the manuscript.
+
+# References

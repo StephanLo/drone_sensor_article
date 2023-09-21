@@ -1,12 +1,9 @@
 ## My project's files
-/resubmission/
-/old/
-/data/
-/sn-article-template/
-/_extensions/
-/recycle/
-/read/
-
+old/
+data/
+read/
+processing/data/
+submission/
 
 # History files
 .Rhistory
@@ -57,3 +54,5 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+/.luarc.json

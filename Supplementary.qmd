@@ -1,0 +1,149 @@
+---
+title: "Supplementary File 1" 
+subtitle: "Article: On the accuracy of infrared-converted drone cameras for use in vegetation and environmental monitoring"
+author:
+  - name: Albertus S. Louw
+    email: jasahovercar@gmail.com
+    affiliations:
+      - name: Graduate School of Environmental Science, Hokkaido University
+  - name: Chen Xinyu
+    affiliations:
+    - name: Graduate School of Environmental Science, Hokkaido University
+  - name: Ram Avtar
+    affiliations:
+    - name: Graduate School of Environmental Science, Hokkaido University
+execute:
+  echo: true
+  eval: false
+knitr: 
+  opts_chunk: 
+    echo: FALSE
+prefer-html: true
+format:
+  docx:
+    page-width: 8.3
+    prefer-html: true
+    fig-dpi: 300
+    number-sections: true
+    csl: apa.csl
+  pdf: default
+  elsevier-pdf:
+    keep-tex: true
+    fig-pos: "h"
+editor: visual
+bibliography: sup_refences.bib
+editor_options: 
+  chunk_output_type: console
+---
+
+This supplementary file describes in more detail the processing steps used to generate the results of the study, to support reproducibility of the results.
+
+## Camera characteristics
+
+Additional information on the camera parameters used for the infrared converted camera (Mapir Survey 3W OCN) and multispectral camera (MicaSense RedEdge-M) used during the study.
+
+| Characteristic        | Mapir Survey 3W OCN | MicaSense RedEdge-M            |
+|-------------------------|------------------|-----------------------------|
+| Bit depth             | 12                  | 16                             |
+| Capture mode          | RAW                 | RAW                            |
+| Image Resolution (px) | 4000 x 3000         | 1280 x 960                     |
+| F-stop                | f/2.8               | f/2.8                          |
+| ISO                   | 100                 | Not recorder in image metadata |
+| Shutter Speed (sec)   | 1/500               | variable                       |
+| Focal length (mm)     | 3                   | 6                              |
+
+: Camera sensor characteristics and parameter settings during field surveys
+
+## Radiometric calibrations and photogrammetry
+
+### Mapir Survey 3W OCN
+
+Mapir supplies radiometric calibration software for the Mapir Survey 3W camera in the form of graphical user interface program, and alternatively a suit of python based programming scripts. However, the Mapir Camera Control software did not support vignette corrections for our camera model, and thus we used the supplied python based scripts for radiometric calibration. A custom Windows Batch script was written to automatically calibrate large sets of RAW image files to reflectance images, using the python scripts and python conda environment provided by Mapir [@mapirsc2020] . Our batch script sequentially executes the following three steps:
+
+1.  Convert RAW images to tiff files,
+2.  Apply Vignette corrections (FlatField Correction)
+3.  Calibration to reflectance, using reflectance panel image captured prior to flight.
+
+The outputted reflectance images are stored as 16-bit byte images, so to obtain reflectance values (float values typically between 0 and 1) the outputted images need to be divided by the bit depth (i.e., $2^{16} -1 = 65535$). The folder with python scripts, windows batch file (raw_to_calibrated_S3W.bat), and directory structure used for the batch processing is available on github at the following URL: [https://github.com/StephanLo/drone_sensor_article/tree/main/processing/mapir-scripts](https://github.com/StephanLo/drone_sensor_article/tree/main/processing/mapir-scripts).
+
+Following radiometric calibration of all images, the drone photogrammetry software OpenDroneMap was used to create a georeferenced orthomosaic of the study site. OpenDroneMap is an open-source software, available on Github, from [ODM link](https://github.com/OpenDroneMap/ODM "https://github.com/OpenDroneMap/ODM"). The software's standalone Windows command line utility was used in this study, which can be accessed from [here](https://github.com/OpenDroneMap/ODM/releases "https://github.com/OpenDroneMap/ODM/releases").
+
+The command line options used for the Mapir camera dataset are shown below. Notably, target orthophoto resolution is set to a ground sampling distance of 5 cm per pixel. Radiometric calibration options are not enabled, since radiometric calibrations were manually conducted with the Mapir provided software.
+
+`Run --orthophoto-resolution 5 --fast-orthophoto --time "path\to\project\folder"`
+
+### MicaSense RedEdge-M
+
+Individual MicaSense images used in the analysis were calibrated by python image processing libraries provided by MicaSense, using tutorials and scripts on this [website](https://micasense.github.io/imageprocessing/ "https://micasense.github.io/imageprocessing/").
+
+However, the stacked Tiff files created by these processing modules are at the time of writing not supported by the drone image processing software OpenDroneMap, as explained in this [forum](https://community.opendronemap.org/t/error-processing-stacked-tiff-output-from-micasense-imageprocessing/7195 "https://community.opendronemap.org/t/error-processing-stacked-tiff-output-from-micasense-imageprocessing/7195"). OpenDroneMap supports radiometric calibration of MicaSense Red-Edge images, however the calibration does not utilise data from the MicaSense provided reflectance panels. Instead it uses data from the downwelling light sensor attached to the camera to correct the images for illumination conditions. The output of this processing generated reflectance values with a different scale than the outputs of the MicaSense provided calibration workflow, presumably because of the difference in luminosity recorded by the downwelling light sensor and reflectance panels respectively. However, the effect of luminosity only results in a linear scaling difference in the reported reflectance values (because of the Empirical Line Calibration method used by the software), and thus the results could still effectively be used for other analysis and derivation of vegetation indices. \
+The Open drone map command-line options used for the MicaSense dataset is:
+
+``` bash
+run --orthophoto-resolution 5 --fast-orthophoto --radiometric-calibration camera+sun "Path\to\project\folder"
+```
+
+## Georectification and post processing
+
+To ensure that generated orthomosaics aligned precisely, they were manually georectified. One orthophoto, the MicaSense Red-Edge orthophoto from the 2022/07/05 field survey was considered as basemap, and after that other 3 orthophotos were georectified to the chosen basemap, by matching 6 or 7 corresponding points in the scene. Two open-source software were used: QGIS Georeferencer, and the GRASS GIS Georectification utility (*module:* *g.gui.gcp*). Suitable results were obtained using a Helmert Transformation with cubic resampling, and no compression for output files, to maintain data integrity. The JDG2011 UTM 54N coordinate reference system (epsg: 6691) was used for the resulting orthomosaics.
+
+## Derivation of NDVI
+
+The red-channel and near-infrared channels of the two sensors were used to generate NDVI maps of the study fields, using the following code scripts in R:
+
+```{r}
+# calculate NDVI for four rasters, masked by roi
+# The Mapir Sensor has red-channel: 1, nir-channel: 3
+# MicaSense sensor has red-channel: 3, nir-channel: 4
+
+library(terra)
+# For individual images
+mapir_im <- list.files(
+  path = "data/individualimages/together-calibrated/",
+  pattern = "*mapir_modified.tif",
+  full.names = TRUE
+)
+mica_im <- list.files(
+  path = "data/individualimages/together-calibrated/",
+  pattern = "*mica_modified.tif",
+  full.names = TRUE
+)
+
+for (i in 1:2) {
+  mic_r <- rast(mica_im[i])
+  map_r <- rast(mapir_im[i]) |> crop(mic_r)
+  # work out NDVI
+  mic_vi <- (mic_r[[4]] - mic_r[[3]]) / (mic_r[[4]] + mic_r[[3]])
+  map_vi <- (map_r[[3]] - map_r[[1]]) / (map_r[[3]] + map_r[[1]])
+
+  writeRaster(mic_vi, filename = paste0("data/Individual_images/ndvi/mica_scene_", i, ".tif"),overwrite = TRUE)
+  writeRaster(map_vi, filename = paste0("data/Individual_images/ndvi/mapir_scene_", i, ".tif"),overwrite = TRUE)
+}
+#------------------------------------------------------------------------------
+# For Orthophotos:
+# File paths:
+mapir <- list.files(path = "data/Georeferenced_data/for_datum_JGD2011",
+                      pattern = "mapir",
+                      full.names = TRUE)
+
+mica <- list.files(path = "data/Georeferenced_data/for_datum_JGD2011",
+                    pattern = "mica",
+                    full.names = TRUE)
+
+# ROI:
+roi <- vect("data/Vector_data/clean_data_area.gpkg") 
+
+## The loop changes index in mica[] and mapir[] to calculate ndvi for different field days. also change output filename accordingly (e.g., d1 to d2)
+for (i in 1:2) {
+  mic_r <- rast(mica[i]) |> mask(roi)
+  map_r <- rast(mapir[i]) |> mask(roi)
+  # work out NDVI
+  mic_vi <- (mic_r[[4]] - mic_r[[3]]) / (mic_r[[4]] + mic_r[[3]])
+  map_vi <- (map_r[[3]] - map_r[[1]]) / (map_r[[3]] + map_r[[1]])
+
+  writeRaster(mic_vi, filename = paste0("processing/data/mica_ndvi_d", i, ".tif"),overwrite = TRUE)
+  writeRaster(map_vi, filename = paste0("processing/data/mapir_ndvi_d", i, ".tif"),overwrite = TRUE)
+}
+```
+
+The Generated NDVI maps and orthorectified imagery are then further analysed, as described in the main text, with analysis scripts given in the corresponding manuscript.qmd file, or manuscript_verbose.html
