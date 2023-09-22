@@ -4,6 +4,7 @@ data/
 read/
 processing/data/
 submission/
+reporting/
 
 # History files
 .Rhistory
